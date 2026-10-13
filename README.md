@@ -61,6 +61,7 @@ English | [简体中文](README.zh-CN.md)
 <td valign="top">
 
 - **Fully customizable** — per‑line font (the fonts really installed on this computer, or a file you import), size, text colour, background colour + opacity and outline; the spacing between the lines and which one sits on top. Live preview in the popup.
+- **Line style controls in the player** — adjust each line's visibility, font, size, weight, colors, and opacity while the video is running.
 - **Summarize a video into chapters** — one line of TL;DR plus timestamped chapters, in the language you read, through your own key or a local model; from the small menu behind the arrow on the player's subtitle button.
 - **Three keyboard shortcuts** — subtitles on/off, read-aloud on/off, translation line on/off; unbound until you bind them in Chrome's shortcut settings.
 - **Select and copy the subtitle text** — off by default (selecting would get in the way of click-to-pause); switch it on in the small menu behind the arrow on the player's subtitle button.

@@ -107,6 +107,7 @@
     showOriginal: true,
     origFont: "system",
     origSize: 22,
+    origWeight: 600,
     origColor: "#ffffff",
     origBg: "#080808",
     origBgOpacity: 0.6,
@@ -116,6 +117,7 @@
     showTranslation: true,
     transFont: "system",
     transSize: 24,
+    transWeight: 600,
     transColor: "#ffe98a",
     transBg: "#080808",
     transBgOpacity: 0.6,
@@ -1160,6 +1162,7 @@
     ensureImportFont(settings.transFont);
     origEl.style.fontFamily = fontStack(settings.origFont);
     origEl.style.fontSize = settings.origSize + "px";
+    origEl.style.fontWeight = String(settings.origWeight || 600);
     origEl.style.color = settings.origColor;
     origEl.style.background = rgba(settings.origBg, settings.origBgOpacity);
     origEl.style.textShadow = outlineShadow(settings.origStroke, settings.origStrokeOpacity);
@@ -1167,6 +1170,7 @@
     // translation line
     transEl.style.fontFamily = fontStack(settings.transFont);
     transEl.style.fontSize = settings.transSize + "px";
+    transEl.style.fontWeight = String(settings.transWeight || 600);
     transEl.style.color = settings.transColor;
     transEl.style.background = rgba(settings.transBg, settings.transBgOpacity);
     transEl.style.textShadow = outlineShadow(settings.transStroke, settings.transStrokeOpacity);
@@ -1648,6 +1652,7 @@
   // work, so the two UIs cannot drift apart.
   let menuEl = null;
   let moreEl = null;
+  let menuStyleLine = "trans";
 
   function ct(key, fb) {
     if (uiTable && uiTable[key] && uiTable[key].message) return uiSubst(uiTable[key]);
@@ -1713,6 +1718,215 @@
       if (k === "openOptions" || k === "summary") continue;   // action rows, not switches
       el.setAttribute("aria-pressed", settings[k] ? "true" : "false");
     }
+    for (const input of menuEl.querySelectorAll("[data-style-key]")) {
+      const key = input.getAttribute("data-style-key");
+      let value = settings[key];
+      if (input.type === "checkbox") input.checked = !!value;
+      else if (input.type === "range") {
+        value = Number(value);
+        if (!Number.isFinite(value)) continue;
+        if (input.dataset.styleScale === "percent") value *= 100;
+        input.value = String(value);
+      } else if (value != null) input.value = String(value);
+      const output = menuEl.querySelector('[data-style-value="' + key + '"]');
+      if (output) {
+        if (key.endsWith("Opacity")) output.textContent = Math.round(Number(settings[key]) * 100) + "%";
+        else output.textContent = value + (key.endsWith("Size") ? "px" : "");
+      }
+    }
+    for (const tab of menuEl.querySelectorAll(".ytds-mstyle-tab")) {
+      tab.setAttribute("aria-selected", tab.dataset.styleLine === menuStyleLine ? "true" : "false");
+    }
+  }
+
+  function appendMenuStyleControls() {
+    const panel = document.createElement("section");
+    panel.className = "ytds-mstyle";
+    const title = document.createElement("button");
+    title.type = "button";
+    title.className = "ytds-mstyle-title";
+    title.setAttribute("aria-expanded", "true");
+    title.setAttribute("aria-controls", "ytds-mstyle-body");
+    const titleText = document.createElement("span");
+    titleText.textContent = ct("secLineStyle", "Line style");
+    const chevron = document.createElement("span");
+    chevron.className = "ytds-mstyle-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "⌄";
+    title.append(titleText, chevron);
+    const body = document.createElement("div");
+    body.className = "ytds-mstyle-body";
+    body.id = "ytds-mstyle-body";
+    title.addEventListener("click", () => {
+      const open = title.getAttribute("aria-expanded") !== "true";
+      title.setAttribute("aria-expanded", String(open));
+      body.hidden = !open;
+    });
+    panel.append(title, body);
+    menuEl.appendChild(panel);
+
+    const lines = {
+      trans: { show: "showTranslation", font: "transFont", size: "transSize", weight: "transWeight", color: "transColor", bg: "transBg", bgOpacity: "transBgOpacity", stroke: "transStroke", strokeOpacity: "transStrokeOpacity" },
+      orig: { show: "showOriginal", font: "origFont", size: "origSize", weight: "origWeight", color: "origColor", bg: "origBg", bgOpacity: "origBgOpacity", stroke: "origStroke", strokeOpacity: "origStrokeOpacity" }
+    };
+    const render = () => {
+      body.textContent = "";
+      const keys = lines[menuStyleLine];
+      const tabs = document.createElement("div");
+      tabs.className = "ytds-mstyle-tabs";
+      tabs.setAttribute("role", "tablist");
+      for (const [line, label] of [["trans", ct("tabTrans", "Translation")], ["orig", ct("tabOrig", "Original")]]) {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "ytds-mstyle-tab";
+        tab.dataset.styleLine = line;
+        tab.setAttribute("role", "tab");
+        tab.textContent = label;
+        tab.addEventListener("click", () => { menuStyleLine = line; render(); });
+        tabs.appendChild(tab);
+      }
+      body.appendChild(tabs);
+
+      const line = document.createElement("label");
+      line.className = "ytds-mstyle-show";
+      const show = document.createElement("input");
+      show.type = "checkbox";
+      show.dataset.styleKey = keys.show;
+      const showText = document.createElement("span");
+      showText.textContent = ct("lineShow", "Show this line");
+      line.append(show, showText);
+      body.appendChild(line);
+
+      const addSelect = (key, labelText) => {
+        const row = document.createElement("label");
+        row.className = "ytds-mstyle-field";
+        const label = document.createElement("span");
+        label.textContent = labelText;
+        const select = document.createElement("select");
+        select.className = "ytds-mstyle-select";
+        select.dataset.styleKey = key;
+        const system = document.createElement("option");
+        system.value = "system";
+        system.textContent = ct("fontSystem", "System default");
+        select.appendChild(system);
+        select.addEventListener("change", () => saveStyleValue(key, select.value));
+        row.append(label, select);
+        body.appendChild(row);
+        populateMenuFonts(select, key, menuStyleLine);
+      };
+
+      const addRange = (key, labelText, min, max, step, scale, unit) => {
+        const row = document.createElement("label");
+        row.className = "ytds-mstyle-range";
+        const label = document.createElement("span");
+        label.textContent = labelText;
+        const value = document.createElement("span");
+        value.className = "ytds-mstyle-value";
+        value.dataset.styleValue = key;
+        const input = document.createElement("input");
+        input.className = "ytds-mslider";
+        input.type = "range";
+        input.min = String(min);
+        input.max = String(max);
+        input.step = String(step);
+        input.dataset.styleKey = key;
+        if (scale) input.dataset.styleScale = scale;
+        input.setAttribute("aria-label", labelText);
+        const raw = Number(settings[key]);
+        value.textContent = (scale === "percent" ? Math.round(raw * 100) : raw) + unit;
+        input.addEventListener("input", () => {
+          const next = Number(input.value) / (scale === "percent" ? 100 : 1);
+          settings[key] = next;
+          value.textContent = (scale === "percent" ? input.value : next) + unit;
+          if (overlay) styleOverlay();
+        });
+        input.addEventListener("change", () => saveStyleValue(key, Number(input.value) / (scale === "percent" ? 100 : 1)));
+        row.append(label, value, input);
+        body.appendChild(row);
+      };
+
+      addSelect(keys.font, ct("fontLabel", "Font"));
+      addRange(keys.size, ct("sizeLabel", "Font size"), 12, 48, 1, "", "px");
+      addRange(keys.weight, ct("menuFontWeight", "Font weight"), 300, 900, 100, "", "");
+
+      const colors = document.createElement("div");
+      colors.className = "ytds-mstyle-colors";
+      for (const color of [
+        { key: keys.color, label: ct("colText", "Text") },
+        { key: keys.bg, label: ct("colBg", "Background") },
+        { key: keys.stroke, label: ct("colStroke", "Outline") }
+      ]) {
+        const swatch = document.createElement("label");
+        swatch.className = "ytds-mstyle-swatch";
+        const label = document.createElement("span");
+        label.textContent = color.label;
+        const input = document.createElement("input");
+        input.type = "color";
+        input.dataset.styleKey = color.key;
+        input.setAttribute("aria-label", color.label);
+        input.addEventListener("input", () => {
+          settings[color.key] = input.value;
+          if (overlay) styleOverlay();
+        });
+        input.addEventListener("change", () => saveStyleValue(color.key, input.value));
+        swatch.append(label, input);
+        colors.appendChild(swatch);
+      }
+      body.appendChild(colors);
+
+      addRange(keys.bgOpacity, ct("bgOpacity", "Background opacity"), 0, 100, 5, "percent", "%");
+      addRange(keys.strokeOpacity, ct("strokeOpacity", "Outline opacity"), 0, 100, 5, "percent", "%");
+      for (const input of body.querySelectorAll("[data-style-key]")) {
+        const key = input.dataset.styleKey;
+        if (input.type === "checkbox") {
+          input.checked = !!settings[key];
+          input.addEventListener("change", () => saveStyleValue(key, input.checked));
+        } else if (input.type === "color") input.value = String(settings[key] || "#000000");
+        else if (input.type === "range") {
+          const number = Number(settings[key]);
+          input.value = String(input.dataset.styleScale === "percent" ? number * 100 : number);
+        }
+      }
+      paintMenuRows();
+    };
+    render();
+  }
+
+  function saveStyleValue(key, value) {
+    settings[key] = value;
+    if (overlay) styleOverlay();
+    extCall(() => chrome.storage.sync.set({ [key]: value }));
+  }
+
+  async function populateMenuFonts(select, key, line) {
+    const F = self.YTDS_FONTS;
+    if (!F) return;
+    const [installed, imports, local] = await Promise.all([
+      F.list().catch(() => null),
+      F.imports().catch(() => []),
+      new Promise((resolve) => extCall(() => chrome.storage.local.get({ fontKept: null }, resolve)) || resolve({}))
+    ]);
+    if (!select.isConnected) return;
+    const available = (installed || []).concat((imports || []).map((font) => ({ id: font.id, name: font.name })));
+    let ids = Array.isArray(local.fontKept) ? local.fontKept.filter((id) => available.some((font) => font.id === id)) :
+      F.defaults(installed || [], [line === "orig" ? trackLang() : settings.targetLang, settings.targetLang, "en"]);
+    for (const font of imports || []) if (!ids.includes(font.id)) ids.push(font.id);
+    const current = String(settings[key] || "system");
+    for (const id of ids) {
+      const value = F.valueOf(id);
+      if ([...select.options].some((option) => option.value === value)) continue;
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = F.label(value, available, ct);
+      select.appendChild(option);
+    }
+    if (![...select.options].some((option) => option.value === current)) {
+      const option = document.createElement("option");
+      option.value = current;
+      option.textContent = F.label(current, available, ct);
+      select.appendChild(option);
+    }
+    select.value = current;
   }
 
   function openMenu() {
@@ -1740,17 +1954,22 @@
     // leaves it open behind you. Every key here is swallowed before the player
     // sees it — arrows are seek and volume out there.
     menuEl.addEventListener("keydown", (e) => {
+      if (e.target && e.target.matches && e.target.matches(
+          ".ytds-mslider, .ytds-mstyle-select, .ytds-mstyle-color, .ytds-mstyle-show input, .ytds-mstyle-tab") &&
+          ["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", "Left", "Right", "Down", "Up", "Home", "End", "PageUp", "PageDown"].includes(e.key)) {
+        e.stopPropagation();             // keep YouTube from seeking/changing volume
+        return;                           // leave the native control's keys alone
+      }
       const keys = ["ArrowDown", "ArrowUp", "Down", "Up", "Home", "End", "Tab"];
       if (keys.indexOf(e.key) < 0) return;
-      const rows = [...menuEl.querySelectorAll(".ytds-mi")];
+      const rows = [...menuEl.querySelectorAll(".ytds-mi, .ytds-mslider")];
       if (!rows.length) return;
       const at = rows.indexOf(document.activeElement);
       if (e.key === "Tab") {
-        // Leaving by Tab closes it: an open menu the keyboard has walked out of
-        // is a panel floating over the video with nothing to dismiss it.
-        closeMenu();
-        try { if (toggleBtn) toggleBtn.focus(); } catch (_e) { /* ignore */ }
-        return;                       // let Tab itself move on from the button
+        // Allow tabbing between the menu's range controls. Close only when the
+        // browser actually moves focus outside the menu.
+        setTimeout(() => { if (menuEl && !menuEl.contains(document.activeElement)) closeMenu(); }, 0);
+        return;
       }
       e.preventDefault();
       e.stopPropagation();
@@ -1818,6 +2037,7 @@
       });
       menuEl.appendChild(b);
     }
+    appendMenuStyleControls();
     // Right-aligned over the button, above the control bar. The menu is a
     // child of the player, so the offsets are player-relative.
     const pr = player.getBoundingClientRect();

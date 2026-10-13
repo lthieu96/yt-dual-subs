@@ -1061,6 +1061,10 @@
     "message": "Summary",
     "description": "Player-menu action row: opens the in-player video summary panel."
   },
+  "menuFontWeight": {
+    "message": "Font weight",
+    "description": "In-player line-style control for subtitle text thickness."
+  },
   "sumPanelTitle": {
     "message": "Video summary",
     "description": "Title of the in-player summary panel."

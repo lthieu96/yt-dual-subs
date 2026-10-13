@@ -54,6 +54,7 @@ const DEFAULTS = {
   showOriginal: true,
   origFont: "system",
   origSize: 22,
+  origWeight: 600,
   origColor: "#ffffff",
   origBg: "#080808",
   origBgOpacity: 0.6,
@@ -63,6 +64,7 @@ const DEFAULTS = {
   showTranslation: true,
   transFont: "system",
   transSize: 24,
+  transWeight: 600,
   transColor: "#ffe98a",
   transBg: "#080808",
   transBgOpacity: 0.6,
@@ -282,6 +284,7 @@ function paintPreview() {
   // scale font sizes to the compact preview strip (~half of player px)
   o.style.fontFamily = fontStack(state.origFont);
   o.style.fontSize = Math.max(9, Math.round(state.origSize / 2)) + "px";
+  o.style.fontWeight = String(state.origWeight || 600);
   o.style.color = state.origColor;
   o.style.background = rgba(state.origBg, state.origBgOpacity);
   o.style.textShadow = outlineShadow(state.origStroke, state.origStrokeOpacity);
@@ -302,6 +305,7 @@ function paintPreview() {
 
   t.style.fontFamily = fontStack(state.transFont);
   t.style.fontSize = Math.max(9, Math.round(state.transSize / 2)) + "px";
+  t.style.fontWeight = String(state.transWeight || 600);
   t.style.color = state.transColor;
   t.style.background = rgba(state.transBg, state.transBgOpacity);
   t.style.textShadow = outlineShadow(state.transStroke, state.transStrokeOpacity);

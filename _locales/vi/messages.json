@@ -1027,6 +1027,10 @@
     "message": "Tóm tắt",
     "description": "Player-menu action row: opens the in-player video summary panel."
   },
+  "menuFontWeight": {
+    "message": "Độ dày chữ",
+    "description": "In-player line-style control for subtitle text thickness."
+  },
   "sumPanelTitle": {
     "message": "Tóm tắt video",
     "description": "Title of the in-player summary panel."
