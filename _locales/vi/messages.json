@@ -148,6 +148,9 @@
   "tabTrans": {
     "message": "Bản dịch"
   },
+  "tabBoth": {
+    "message": "Cả hai"
+  },
   "tabOrig": {
     "message": "Bản gốc"
   },
@@ -171,6 +174,15 @@
   },
   "sizeLabel": {
     "message": "Cỡ chữ"
+  },
+  "rangeDecrease": {
+    "message": "Giảm"
+  },
+  "rangeIncrease": {
+    "message": "Tăng"
+  },
+  "letterSpacing": {
+    "message": "Khoảng cách chữ"
   },
   "colText": {
     "message": "Chữ"

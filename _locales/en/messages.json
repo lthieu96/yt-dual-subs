@@ -173,6 +173,9 @@
   "tabTrans": {
     "message": "Translation"
   },
+  "tabBoth": {
+    "message": "Both"
+  },
   "tabOrig": {
     "message": "Original"
   },
@@ -196,6 +199,15 @@
   },
   "sizeLabel": {
     "message": "Font size"
+  },
+  "rangeDecrease": {
+    "message": "Decrease"
+  },
+  "rangeIncrease": {
+    "message": "Increase"
+  },
+  "letterSpacing": {
+    "message": "Letter spacing"
   },
   "colText": {
     "message": "Text"

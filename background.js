@@ -2691,6 +2691,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     deriveTargetLang(true, (code) => sendResponse({ ok: !!code, targetLang: code }));
     return true;                                            // async reply
   }
+  if (msg && msg.type === "fontList") {
+    // chrome.fontSettings is unavailable to content scripts. The player asks
+    // here so its in-player picker can offer fonts installed on this machine.
+    if (sender && sender.id && sender.id !== chrome.runtime.id) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    const F = self.YTDS_FONTS;
+    if (!F) { sendResponse({ ok: false }); return false; }
+    F.list().then((fonts) => {
+      sendResponse({ ok: Array.isArray(fonts), fonts: fonts || [] });
+    }).catch(() => sendResponse({ ok: false }));
+    return true;                                            // async reply
+  }
   if (msg && msg.type === "fontBytes") {
     // A font the reader imported on the settings page, wanted by the subtitle
     // layer. The copy lives in this extension's IndexedDB, which a content

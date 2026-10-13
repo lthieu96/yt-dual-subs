@@ -108,6 +108,7 @@
     origFont: "system",
     origSize: 22,
     origWeight: 600,
+    origLetterSpacing: 0,
     origColor: "#ffffff",
     origBg: "#080808",
     origBgOpacity: 0.6,
@@ -118,6 +119,7 @@
     transFont: "system",
     transSize: 24,
     transWeight: 600,
+    transLetterSpacing: 0,
     transColor: "#ffe98a",
     transBg: "#080808",
     transBgOpacity: 0.6,
@@ -1163,6 +1165,7 @@
     origEl.style.fontFamily = fontStack(settings.origFont);
     origEl.style.fontSize = settings.origSize + "px";
     origEl.style.fontWeight = String(settings.origWeight || 600);
+    origEl.style.letterSpacing = (Number(settings.origLetterSpacing) || 0) + "px";
     origEl.style.color = settings.origColor;
     origEl.style.background = rgba(settings.origBg, settings.origBgOpacity);
     origEl.style.textShadow = outlineShadow(settings.origStroke, settings.origStrokeOpacity);
@@ -1171,6 +1174,7 @@
     transEl.style.fontFamily = fontStack(settings.transFont);
     transEl.style.fontSize = settings.transSize + "px";
     transEl.style.fontWeight = String(settings.transWeight || 600);
+    transEl.style.letterSpacing = (Number(settings.transLetterSpacing) || 0) + "px";
     transEl.style.color = settings.transColor;
     transEl.style.background = rgba(settings.transBg, settings.transBgOpacity);
     transEl.style.textShadow = outlineShadow(settings.transStroke, settings.transStrokeOpacity);
@@ -1711,6 +1715,13 @@
     if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
   }
 
+  function paintStyleRange(input) {
+    const min = Number(input.min), max = Number(input.max), value = Number(input.value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value) || max <= min) return;
+    const progress = Math.max(0, Math.min(100, (value - min) / (max - min) * 100));
+    input.style.setProperty("--ytds-range-progress", progress + "%");
+  }
+
   function paintMenuRows() {
     if (!menuEl) return;
     for (const el of menuEl.querySelectorAll(".ytds-mi[data-key]")) {
@@ -1720,6 +1731,8 @@
     }
     for (const input of menuEl.querySelectorAll("[data-style-key]")) {
       const key = input.getAttribute("data-style-key");
+      const keys = (input.dataset.styleKeys || key).split(",").filter(Boolean);
+      const values = keys.map((targetKey) => settings[targetKey]);
       let value = settings[key];
       if (input.type === "checkbox") input.checked = !!value;
       else if (input.type === "range") {
@@ -1727,11 +1740,15 @@
         if (!Number.isFinite(value)) continue;
         if (input.dataset.styleScale === "percent") value *= 100;
         input.value = String(value);
+        paintStyleRange(input);
       } else if (value != null) input.value = String(value);
       const output = menuEl.querySelector('[data-style-value="' + key + '"]');
       if (output) {
-        if (key.endsWith("Opacity")) output.textContent = Math.round(Number(settings[key]) * 100) + "%";
-        else output.textContent = value + (key.endsWith("Size") ? "px" : "");
+        if (keys.length > 1) {
+          const shown = values.map((entry) => input.dataset.styleScale === "percent" ? Math.round(Number(entry) * 100) : Number(entry));
+          output.textContent = (shown.every((entry) => entry === shown[0]) ? shown[0] : shown.join(" / ")) + (input.dataset.styleUnit || "");
+        } else if (key.endsWith("Opacity")) output.textContent = Math.round(Number(settings[key]) * 100) + "%";
+        else output.textContent = value + (key.endsWith("Size") || key.endsWith("LetterSpacing") ? "px" : "");
       }
     }
     for (const tab of menuEl.querySelectorAll(".ytds-mstyle-tab")) {
@@ -1747,13 +1764,17 @@
     title.className = "ytds-mstyle-title";
     title.setAttribute("aria-expanded", "true");
     title.setAttribute("aria-controls", "ytds-mstyle-body");
+    const titleIcon = document.createElement("span");
+    titleIcon.setAttribute("aria-hidden", "true");
+    titleIcon.innerHTML = MENU_ICONS.enabled.replace("ytds-mi-icon", "ytds-mstyle-icon");
     const titleText = document.createElement("span");
+    titleText.className = "ytds-mstyle-heading";
     titleText.textContent = ct("secLineStyle", "Line style");
     const chevron = document.createElement("span");
     chevron.className = "ytds-mstyle-chevron";
     chevron.setAttribute("aria-hidden", "true");
-    chevron.textContent = "⌄";
-    title.append(titleText, chevron);
+    chevron.innerHTML = '<svg ' + MENU_SVG_ATTRS + '><path d="m7 10 5 5 5-5"/></svg>';
+    title.append(titleIcon, titleText, chevron);
     const body = document.createElement("div");
     body.className = "ytds-mstyle-body";
     body.id = "ytds-mstyle-body";
@@ -1766,16 +1787,18 @@
     menuEl.appendChild(panel);
 
     const lines = {
-      trans: { show: "showTranslation", font: "transFont", size: "transSize", weight: "transWeight", color: "transColor", bg: "transBg", bgOpacity: "transBgOpacity", stroke: "transStroke", strokeOpacity: "transStrokeOpacity" },
-      orig: { show: "showOriginal", font: "origFont", size: "origSize", weight: "origWeight", color: "origColor", bg: "origBg", bgOpacity: "origBgOpacity", stroke: "origStroke", strokeOpacity: "origStrokeOpacity" }
+      trans: { show: "showTranslation", font: "transFont", size: "transSize", weight: "transWeight", letterSpacing: "transLetterSpacing", color: "transColor", bg: "transBg", bgOpacity: "transBgOpacity", stroke: "transStroke", strokeOpacity: "transStrokeOpacity" },
+      orig: { show: "showOriginal", font: "origFont", size: "origSize", weight: "origWeight", letterSpacing: "origLetterSpacing", color: "origColor", bg: "origBg", bgOpacity: "origBgOpacity", stroke: "origStroke", strokeOpacity: "origStrokeOpacity" },
+      both: { size: ["transSize", "origSize"], weight: ["transWeight", "origWeight"], letterSpacing: ["transLetterSpacing", "origLetterSpacing"], bg: ["transBg", "origBg"], bgOpacity: ["transBgOpacity", "origBgOpacity"] }
     };
     const render = () => {
       body.textContent = "";
+      const both = menuStyleLine === "both";
       const keys = lines[menuStyleLine];
       const tabs = document.createElement("div");
       tabs.className = "ytds-mstyle-tabs";
       tabs.setAttribute("role", "tablist");
-      for (const [line, label] of [["trans", ct("tabTrans", "Translation")], ["orig", ct("tabOrig", "Original")]]) {
+      for (const [line, label] of [["trans", ct("tabTrans", "Translation")], ["orig", ct("tabOrig", "Original")], ["both", ct("tabBoth", "Both")]]) {
         const tab = document.createElement("button");
         tab.type = "button";
         tab.className = "ytds-mstyle-tab";
@@ -1787,15 +1810,17 @@
       }
       body.appendChild(tabs);
 
-      const line = document.createElement("label");
-      line.className = "ytds-mstyle-show";
-      const show = document.createElement("input");
-      show.type = "checkbox";
-      show.dataset.styleKey = keys.show;
-      const showText = document.createElement("span");
-      showText.textContent = ct("lineShow", "Show this line");
-      line.append(show, showText);
-      body.appendChild(line);
+      if (!both) {
+        const line = document.createElement("label");
+        line.className = "ytds-mstyle-show";
+        const show = document.createElement("input");
+        show.type = "checkbox";
+        show.dataset.styleKey = keys.show;
+        const showText = document.createElement("span");
+        showText.textContent = ct("lineShow", "Show this line");
+        line.append(show, showText);
+        body.appendChild(line);
+      }
 
       const addSelect = (key, labelText) => {
         const row = document.createElement("label");
@@ -1816,66 +1841,106 @@
       };
 
       const addRange = (key, labelText, min, max, step, scale, unit) => {
-        const row = document.createElement("label");
+        const row = document.createElement("div");
         row.className = "ytds-mstyle-range";
-        const label = document.createElement("span");
+        const label = document.createElement("label");
+        label.className = "ytds-mstyle-range-label";
         label.textContent = labelText;
         const value = document.createElement("span");
         value.className = "ytds-mstyle-value";
-        value.dataset.styleValue = key;
+        const targetKeys = Array.isArray(key) ? key : [key];
+        value.dataset.styleValue = targetKeys[0];
         const input = document.createElement("input");
         input.className = "ytds-mslider";
         input.type = "range";
+        input.id = "ytds-style-" + targetKeys.join("-");
         input.min = String(min);
         input.max = String(max);
         input.step = String(step);
-        input.dataset.styleKey = key;
+        input.dataset.styleKey = targetKeys[0];
+        input.dataset.styleKeys = targetKeys.join(",");
+        input.dataset.styleUnit = unit;
         if (scale) input.dataset.styleScale = scale;
         input.setAttribute("aria-label", labelText);
-        const raw = Number(settings[key]);
+        label.htmlFor = input.id;
+        const raw = Number(settings[targetKeys[0]]);
         value.textContent = (scale === "percent" ? Math.round(raw * 100) : raw) + unit;
         input.addEventListener("input", () => {
           const next = Number(input.value) / (scale === "percent" ? 100 : 1);
-          settings[key] = next;
+          for (const targetKey of targetKeys) settings[targetKey] = next;
+          paintStyleRange(input);
           value.textContent = (scale === "percent" ? input.value : next) + unit;
           if (overlay) styleOverlay();
         });
-        input.addEventListener("change", () => saveStyleValue(key, Number(input.value) / (scale === "percent" ? 100 : 1)));
-        row.append(label, value, input);
+        input.addEventListener("change", () => saveStyleValues(targetKeys, Number(input.value) / (scale === "percent" ? 100 : 1)));
+        const controls = document.createElement("div");
+        controls.className = "ytds-mstyle-range-controls";
+        for (const [direction, iconPath, fallback] of [
+          ["down", '<path d="M5 12h14"/>', "Decrease"],
+          ["up", '<path d="M5 12h14M12 5v14"/>', "Increase"]
+        ]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "ytds-mstyle-step";
+          button.setAttribute("aria-label", ct(direction === "down" ? "rangeDecrease" : "rangeIncrease", fallback) + " " + labelText);
+          button.innerHTML = '<svg ' + MENU_SVG_ATTRS + ' aria-hidden="true">' + iconPath + '</svg>';
+          button.addEventListener("click", () => {
+            input[direction === "down" ? "stepDown" : "stepUp"]();
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          controls.appendChild(button);
+          if (direction === "down") controls.appendChild(input);
+        }
+        row.append(label, value, controls);
         body.appendChild(row);
       };
 
-      addSelect(keys.font, ct("fontLabel", "Font"));
+      if (!both) addSelect(keys.font, ct("fontLabel", "Font"));
       addRange(keys.size, ct("sizeLabel", "Font size"), 12, 48, 1, "", "px");
       addRange(keys.weight, ct("menuFontWeight", "Font weight"), 300, 900, 100, "", "");
+      addRange(keys.letterSpacing, ct("letterSpacing", "Letter spacing"), -2, 8, 0.25, "", "px");
 
       const colors = document.createElement("div");
       colors.className = "ytds-mstyle-colors";
-      for (const color of [
-        { key: keys.color, label: ct("colText", "Text") },
-        { key: keys.bg, label: ct("colBg", "Background") },
-        { key: keys.stroke, label: ct("colStroke", "Outline") }
-      ]) {
+      const colorSettings = both
+        ? [{ key: keys.bg, label: ct("colBg", "Background"), icon: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 14h16"/>' }]
+        : [
+          { key: keys.color, label: ct("colText", "Text"), icon: '<path d="M5 7h14M12 7v12M9 19h6"/>' },
+          { key: keys.bg, label: ct("colBg", "Background"), icon: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 14h16"/>' },
+          { key: keys.stroke, label: ct("colStroke", "Outline"), icon: '<rect x="5" y="5" width="14" height="14" rx="2.5" stroke-dasharray="2 2"/>' }
+        ];
+      if (both) colors.classList.add("ytds-mstyle-colors-shared");
+      for (const color of colorSettings) {
+        const targetKeys = Array.isArray(color.key) ? color.key : [color.key];
         const swatch = document.createElement("label");
         swatch.className = "ytds-mstyle-swatch";
         const label = document.createElement("span");
-        label.textContent = color.label;
+        label.className = "ytds-mstyle-swatch-label";
+        const icon = document.createElement("span");
+        icon.className = "ytds-mstyle-swatch-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.innerHTML = '<svg ' + MENU_SVG_ATTRS + '>' + color.icon + '</svg>';
+        const labelText = document.createElement("span");
+        labelText.textContent = color.label;
+        label.append(icon, labelText);
         const input = document.createElement("input");
         input.type = "color";
-        input.dataset.styleKey = color.key;
+        input.dataset.styleKey = targetKeys[0];
+        input.dataset.styleKeys = targetKeys.join(",");
         input.setAttribute("aria-label", color.label);
         input.addEventListener("input", () => {
-          settings[color.key] = input.value;
+          for (const targetKey of targetKeys) settings[targetKey] = input.value;
           if (overlay) styleOverlay();
         });
-        input.addEventListener("change", () => saveStyleValue(color.key, input.value));
+        input.addEventListener("change", () => saveStyleValues(targetKeys, input.value));
         swatch.append(label, input);
         colors.appendChild(swatch);
       }
       body.appendChild(colors);
 
       addRange(keys.bgOpacity, ct("bgOpacity", "Background opacity"), 0, 100, 5, "percent", "%");
-      addRange(keys.strokeOpacity, ct("strokeOpacity", "Outline opacity"), 0, 100, 5, "percent", "%");
+      if (!both) addRange(keys.strokeOpacity, ct("strokeOpacity", "Outline opacity"), 0, 100, 5, "percent", "%");
       for (const input of body.querySelectorAll("[data-style-key]")) {
         const key = input.dataset.styleKey;
         if (input.type === "checkbox") {
@@ -1893,18 +1958,36 @@
   }
 
   function saveStyleValue(key, value) {
-    settings[key] = value;
+    saveStyleValues([key], value);
+  }
+
+  function saveStyleValues(keys, value) {
+    const updates = {};
+    for (const key of keys) {
+      settings[key] = value;
+      updates[key] = value;
+    }
     if (overlay) styleOverlay();
-    extCall(() => chrome.storage.sync.set({ [key]: value }));
+    extCall(() => chrome.storage.sync.set(updates));
+  }
+
+  function installedFontsFromWorker() {
+    return new Promise((resolve) => {
+      const sent = extCall(() => chrome.runtime.sendMessage({ type: "fontList" }, (r) => {
+        if (chrome.runtime.lastError) { resolve(null); return; }
+        resolve(r && r.ok && Array.isArray(r.fonts) ? r.fonts : null);
+      }));
+      if (!sent) resolve(null);
+    });
   }
 
   async function populateMenuFonts(select, key, line) {
     const F = self.YTDS_FONTS;
     if (!F) return;
     const [installed, imports, local] = await Promise.all([
-      F.list().catch(() => null),
+      installedFontsFromWorker(),
       F.imports().catch(() => []),
-      new Promise((resolve) => extCall(() => chrome.storage.local.get({ fontKept: null }, resolve)) || resolve({}))
+      new Promise((resolve) => extCall(() => chrome.storage.local.get({ fontKept: null, fontCov: null }, resolve)) || resolve({}))
     ]);
     if (!select.isConnected) return;
     const available = (installed || []).concat((imports || []).map((font) => ({ id: font.id, name: font.name })));
@@ -1912,18 +1995,26 @@
       F.defaults(installed || [], [line === "orig" ? trackLang() : settings.targetLang, settings.targetLang, "en"]);
     for (const font of imports || []) if (!ids.includes(font.id)) ids.push(font.id);
     const current = String(settings[key] || "system");
+    const lang = F.probeLang(line === "orig" ? trackLang() : settings.targetLang);
+    const coverage = lang && local.fontCov && local.fontCov.cov && local.fontCov.cov[lang];
     for (const id of ids) {
       const value = F.valueOf(id);
       if ([...select.options].some((option) => option.value === value)) continue;
+      const unsupported = !!coverage && coverage[id] === false;
+      if (unsupported && value !== current) continue;
       const option = document.createElement("option");
       option.value = value;
-      option.textContent = F.label(value, available, ct);
+      option.textContent = F.label(value, available, ct) + (unsupported ? " · " + ct("fontNoGlyphs", "cannot display") : "");
+      option.disabled = unsupported;
       select.appendChild(option);
     }
     if (![...select.options].some((option) => option.value === current)) {
       const option = document.createElement("option");
       option.value = current;
-      option.textContent = F.label(current, available, ct);
+      const id = F.isFont(current) ? F.idOf(current) : "";
+      const unsupported = !!(id && coverage && coverage[id] === false);
+      option.textContent = F.label(current, available, ct) + (unsupported ? " · " + ct("fontNoGlyphs", "cannot display") : "");
+      option.disabled = unsupported;
       select.appendChild(option);
     }
     select.value = current;

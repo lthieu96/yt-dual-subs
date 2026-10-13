@@ -55,6 +55,7 @@ const DEFAULTS = {
   origFont: "system",
   origSize: 22,
   origWeight: 600,
+  origLetterSpacing: 0,
   origColor: "#ffffff",
   origBg: "#080808",
   origBgOpacity: 0.6,
@@ -65,6 +66,7 @@ const DEFAULTS = {
   transFont: "system",
   transSize: 24,
   transWeight: 600,
+  transLetterSpacing: 0,
   transColor: "#ffe98a",
   transBg: "#080808",
   transBgOpacity: 0.6,
@@ -285,6 +287,7 @@ function paintPreview() {
   o.style.fontFamily = fontStack(state.origFont);
   o.style.fontSize = Math.max(9, Math.round(state.origSize / 2)) + "px";
   o.style.fontWeight = String(state.origWeight || 600);
+  o.style.letterSpacing = (Number(state.origLetterSpacing) || 0) / 2 + "px";
   o.style.color = state.origColor;
   o.style.background = rgba(state.origBg, state.origBgOpacity);
   o.style.textShadow = outlineShadow(state.origStroke, state.origStrokeOpacity);
@@ -306,6 +309,7 @@ function paintPreview() {
   t.style.fontFamily = fontStack(state.transFont);
   t.style.fontSize = Math.max(9, Math.round(state.transSize / 2)) + "px";
   t.style.fontWeight = String(state.transWeight || 600);
+  t.style.letterSpacing = (Number(state.transLetterSpacing) || 0) / 2 + "px";
   t.style.color = state.transColor;
   t.style.background = rgba(state.transBg, state.transBgOpacity);
   t.style.textShadow = outlineShadow(state.transStroke, state.transStrokeOpacity);
